@@ -17,12 +17,19 @@ const NAV_ITEMS = [
 export default function Sidebar() {
   const { user } = useAuth();
   const sidebarOpen = useUIStore(s => s.sidebarOpen);
+  const closeSidebar = useUIStore(s => s.closeSidebar);
   const workspaceId = user?.workspaceId?._id || user?.workspaceId;
   const { data: projects = [] } = useProjects(workspaceId);
   const createProject = useCreateProject();
   const navigate = useNavigate();
   const [showNewProject, setShowNewProject] = useState(false);
   const [newProjName, setNewProjName] = useState('');
+
+  const handleNavClick = () => {
+    if (window.innerWidth <= 768) {
+      closeSidebar();
+    }
+  };
 
   const handleCreateProject = async (e) => {
     e.preventDefault();
@@ -40,7 +47,7 @@ export default function Sidebar() {
 
   return (
     <>
-      <aside className={`sidebar ${!sidebarOpen ? 'collapsed' : ''}`}>
+      <aside className={`sidebar ${sidebarOpen ? 'mobile-open' : 'collapsed'}`}>
         {/* Logo */}
         <div className="sidebar-logo">
           <div className="logo-mark">N</div>
@@ -60,6 +67,7 @@ export default function Sidebar() {
               end={item.exact}
               className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
               title={!sidebarOpen ? item.label : ''}
+              onClick={handleNavClick}
             >
               <span className="nav-item-icon">{item.icon}</span>
               {sidebarOpen && <span>{item.label}</span>}
@@ -75,6 +83,7 @@ export default function Sidebar() {
               to={`/projects/${project._id}`}
               className={({ isActive }) => `proj-nav-item ${isActive ? 'active' : ''}`}
               title={!sidebarOpen ? project.name : ''}
+              onClick={handleNavClick}
             >
               <ProjectAvatar project={project} size="sm" />
               {sidebarOpen && <span className="truncate">{project.name}</span>}
@@ -95,7 +104,7 @@ export default function Sidebar() {
 
         {/* User bottom */}
         <div className="sidebar-bottom">
-          <NavLink to="/profile" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flex: 1 }}>
+          <NavLink to="/profile" style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', flex: 1 }} onClick={handleNavClick}>
             <Avatar user={user} size="sm" style={{ flexShrink: 0 }} />
             {sidebarOpen && (
               <div className="av-info">
@@ -109,7 +118,7 @@ export default function Sidebar() {
 
       {/* New Project Modal */}
       <Modal isOpen={showNewProject} onClose={() => setShowNewProject(false)}>
-        <form onSubmit={handleCreateProject} style={{ padding: 24, width: 340 }}>
+        <form onSubmit={handleCreateProject} style={{ padding: 24, width: '100%', maxWidth: 340, boxSizing: 'border-box' }}>
           <h3 style={{ marginBottom: 16, fontSize: 16 }}>New Project</h3>
           <input
             className="input"

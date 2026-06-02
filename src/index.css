@@ -992,28 +992,157 @@ textarea.input { resize: vertical; min-height: 80px; line-height: 1.6; }
 .settings-section h3 { font-size: 15px; margin-bottom: 4px; }
 .settings-section p.sub { font-size: 13px; color: var(--text-sec); margin-bottom: 16px; }
 
+/* ── Layout classes ───────────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+}
+.home-dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+.project-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.project-header-wrap {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  gap: 16px;
+}
+.project-header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.profile-avatar-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.page-header-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
 /* ── Responsive ───────────────────────────────────────── */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
 @media (max-width: 1280px) {
-  :root { --sidebar-w: 240px; }
-  .sidebar { width: 56px; }
-  .sidebar .logo-text,
-  .sidebar .nav-item span:not(.nav-item-icon),
-  .sidebar .nav-section-label,
-  .sidebar .proj-nav-item span,
-  .sidebar .sidebar-bottom .av-info { display: none; }
-  .topbar { left: 56px; }
-  .page-layout { margin-left: 56px; }
   .stats-grid { grid-template-columns: repeat(3, 1fr); }
 }
+
 @media (max-width: 768px) {
-  .sidebar { transform: translateX(-100%); width: 240px; }
-  .sidebar.mobile-open { transform: translateX(0); }
-  .topbar { left: 0; }
-  .page-layout { margin-left: 0; }
-  .page-content { padding: 16px; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .task-modal-body { flex-direction: column; }
-  .task-modal-right { width: 100%; border-top: 1px solid var(--border); border-right: none; }
+  .sidebar, .sidebar.collapsed {
+    transform: translateX(-100%);
+    width: 240px;
+  }
+  .sidebar.mobile-open {
+    transform: translateX(0);
+  }
+  .sidebar-overlay {
+    display: block;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 95;
+    animation: fadeIn 0.2s ease;
+  }
+  .topbar, .topbar.sidebar-collapsed {
+    left: 0;
+  }
+  .page-layout, .page-layout.sidebar-collapsed {
+    margin-left: 0;
+  }
+  .page-content {
+    padding: 16px;
+  }
+  .breadcrumb-workspace {
+    display: none;
+  }
+  .search-trigger {
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 8px;
+    flex: none;
+  }
+  .search-text, .search-shortcut {
+    display: none;
+  }
+  .home-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+  .project-header-wrap {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .project-header-wrap button {
+    width: 100%;
+  }
+  .project-stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .task-modal-body {
+    flex-direction: column;
+    max-height: none;
+    overflow-y: visible;
+  }
+  .task-modal-left {
+    overflow-y: visible;
+    border-right: none;
+    padding: 16px;
+  }
+  .task-modal-right {
+    width: 100%;
+    border-top: 1px solid var(--border);
+    border-right: none;
+    padding: 16px;
+  }
+  .calendar-day {
+    min-height: 60px;
+    padding: 3px;
+  }
+  .cal-task-chip {
+    font-size: 8px;
+    padding: 1px 3px;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid, .project-stats-grid {
+    grid-template-columns: 1fr;
+  }
+  .profile-avatar-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .page-header-wrap {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .login-card {
+    padding: 24px 16px;
+  }
 }
 
 /* ── Profile Dropdown (Screenshot 2 Spec) ───────────────── */

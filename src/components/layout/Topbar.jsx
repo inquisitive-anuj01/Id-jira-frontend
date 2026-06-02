@@ -80,13 +80,13 @@ export default function Topbar({ workspaceName = 'Workspace' }) {
 
         {/* Breadcrumb */}
         <div className="breadcrumb">
-          {workspaceName} / <span>{page}</span>
+          <span className="breadcrumb-workspace">{workspaceName} / </span><span>{page}</span>
         </div>
 
         {/* Search trigger */}
         <div className="search-trigger" onClick={() => setShowSearch(true)}>
-          <span style={{ fontSize: 13 }}>🔍</span>
-          <span>Search tasks, projects...</span>
+          <span className="search-icon" style={{ fontSize: 13 }}>🔍</span>
+          <span className="search-text">Search tasks, projects...</span>
           <span className="search-shortcut">⌘K</span>
         </div>
 

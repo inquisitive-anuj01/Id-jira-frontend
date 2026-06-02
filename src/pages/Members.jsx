@@ -37,7 +37,7 @@ function PermissionsModal({ member, workspaceId, onClose }) {
   };
 
   return (
-    <div style={{ padding: 24, width: 420 }}>
+    <div style={{ padding: 24, width: '100%', maxWidth: 420, boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <Avatar user={member.userId} size="md" />
         <div>
@@ -126,7 +126,7 @@ function AddMemberModal({ workspaceId, onClose }) {
   };
 
   return (
-    <form onSubmit={handleSave} style={{ padding: 24, width: 420 }}>
+    <form onSubmit={handleSave} style={{ padding: 24, width: '100%', maxWidth: 420, boxSizing: 'border-box' }}>
       <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>Create Employee Profile</h3>
       <p style={{ fontSize: 12, color: 'var(--text-mute)', marginBottom: 20 }}>
         Create credentials for a new team member directly. They can sign in immediately using these.

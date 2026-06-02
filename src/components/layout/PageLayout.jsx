@@ -9,6 +9,7 @@ import ConfirmDialog from '../ui/ConfirmDialog.jsx';
 export default function PageLayout() {
   const { user } = useAuth();
   const sidebarOpen = useUIStore(s => s.sidebarOpen);
+  const closeSidebar = useUIStore(s => s.closeSidebar);
   const taskModalOpen = useUIStore(s => s.taskModalOpen);
   const closeTaskModal = useUIStore(s => s.closeTaskModal);
   const selectedTaskId = useUIStore(s => s.selectedTaskId);
@@ -19,6 +20,7 @@ export default function PageLayout() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
+      {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
       <Sidebar />
       <Topbar workspaceName={workspaceName} />
 

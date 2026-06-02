@@ -356,8 +356,8 @@ export default function ProjectPage() {
   return (
     <div className="page-enter">
       {/* Project Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+      <div className="project-header-wrap">
+        <div className="project-header-left">
           <ProjectAvatar project={project} size="xl" />
           <div>
             <h1 style={{ fontSize: 22, fontWeight: 700, letterSpacing: '-0.5px', marginBottom: 4 }}>{project.name}</h1>
@@ -373,7 +373,7 @@ export default function ProjectPage() {
 
       {/* Stats Row */}
       {stats && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20 }}>
+        <div className="project-stats-grid">
           {[
             { label: 'Total', value: stats.total, color: 'var(--text)' },
             { label: 'Done', value: stats.done, color: 'var(--success)' },
@@ -420,7 +420,7 @@ export default function ProjectPage() {
 
       {/* New Task Modal */}
       <Modal isOpen={showNewTask} onClose={() => setShowNewTask(false)}>
-        <form onSubmit={handleCreateTask} style={{ padding: 24, width: 400 }}>
+        <form onSubmit={handleCreateTask} style={{ padding: 24, width: '100%', maxWidth: 400, boxSizing: 'border-box' }}>
           <h3 style={{ marginBottom: 16, fontSize: 16 }}>New Task</h3>
           <div style={{ marginBottom: 12 }}>
             <label className="section-label">Title</label>

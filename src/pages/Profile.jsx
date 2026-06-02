@@ -74,7 +74,7 @@ export default function ProfilePage() {
       <div className="settings-section">
         <form onSubmit={handleProfileSave}>
           {/* Avatar */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 24 }}>
+          <div className="profile-avatar-row">
             <div style={{ position: 'relative', cursor: 'pointer' }}
               onMouseEnter={e => e.currentTarget.querySelector('.av-overlay').style.opacity = '1'}
               onMouseLeave={e => e.currentTarget.querySelector('.av-overlay').style.opacity = '0'}

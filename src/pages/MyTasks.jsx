@@ -71,7 +71,7 @@ export default function MyTasksPage() {
 
   return (
     <div className="page-enter">
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+      <div className="page-header-wrap">
         <div>
           <h1 style={{ fontSize: 20, fontWeight: 700, letterSpacing: '-0.4px', marginBottom: 2 }}>My Tasks</h1>
           <p style={{ fontSize: 13, color: 'var(--text-sec)' }}>Tasks assigned to you across all projects</p>

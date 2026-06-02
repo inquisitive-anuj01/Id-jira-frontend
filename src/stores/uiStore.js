@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 
 export const useUIStore = create((set) => ({
-  // Sidebar
-  sidebarOpen: true,
+  sidebarOpen: typeof window !== 'undefined' ? window.innerWidth > 1024 : true,
   toggleSidebar: () => set(s => ({ sidebarOpen: !s.sidebarOpen })),
+  closeSidebar: () => set({ sidebarOpen: false }),
+  openSidebar: () => set({ sidebarOpen: true }),
 
   // Task Modal (global — accessible from anywhere)
   taskModalOpen: false,

@@ -2,8 +2,8 @@ import axios from 'axios';
 
 const api = axios.create({
   // In dev: Vite proxy forwards /api → http://localhost:5001/api
-  // In prod: set VITE_API_URL in .env
-  baseURL: import.meta.env.VITE_API_URL || '/api',
+  // In prod: set VITE_API_URL in Vercel or .env
+  baseURL: import.meta.env.DEV ? '/api' : (import.meta.env.VITE_API_URL || '/api'),
   withCredentials: true, // still send cookies if browser supports it
   headers: { 'Content-Type': 'application/json' },
 });
