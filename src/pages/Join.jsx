@@ -1,7 +1,7 @@
 import { useNavigate, useParams } from 'react-router-dom';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import api from '../lib/api.js';
+import api, { saveToken } from '../lib/api.js';
 import { useWorkspaceStore } from '../stores/workspaceStore.js';
 import { toast } from 'react-toastify';
 
@@ -32,6 +32,7 @@ export default function JoinPage() {
       api.post(`/auth/join/${inviteToken}`, payload).then(r => r.data.data),
     onSuccess: (data) => {
       setJoined(true);
+      if (data.token) saveToken(data.token);
       qc.setQueryData(['me'], data.user);
       if (data.workspace) setWorkspace(data.workspace);
       toast.success(`Welcome! You've joined ${data.workspace?.name || 'the workspace'}`);

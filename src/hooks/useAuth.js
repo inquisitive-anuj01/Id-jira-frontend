@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'react-toastify';
-import api from '../lib/api.js';
+import api, { saveToken, clearToken } from '../lib/api.js';
 import { useWorkspaceStore } from '../stores/workspaceStore.js';
 
 export function useAuth() {
@@ -20,6 +20,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: (creds) => api.post('/auth/login', creds).then(r => r.data.data),
     onSuccess: (data) => {
+      if (data.token) saveToken(data.token);
       qc.setQueryData(['me'], data.user);
       if (data.user.workspace) setWorkspace(data.user.workspace);
     },
@@ -36,12 +37,14 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => api.post('/auth/logout'),
     onSuccess: () => {
+      clearToken();
       qc.clear();
       clearWorkspace();
       window.location.href = '/login';
     },
   });
 }
+
 
 export function useChangePassword() {
   return useMutation({
@@ -58,6 +61,7 @@ export function useRegister() {
   return useMutation({
     mutationFn: (payload) => api.post('/auth/register', payload).then(r => r.data.data),
     onSuccess: (data) => {
+      if (data.token) saveToken(data.token);
       qc.setQueryData(['me'], data.user);
       if (data.user?.workspace) setWorkspace(data.user.workspace);
     },
