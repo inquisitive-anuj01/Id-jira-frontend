@@ -18,7 +18,7 @@ export default function PageLayout() {
   const workspaceName = user?.workspaceId?.name || user?.workspace?.name || 'Workspace';
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--dark)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-page)' }}>
       <Sidebar />
       <Topbar workspaceName={workspaceName} />
 

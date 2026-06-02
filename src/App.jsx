@@ -22,7 +22,7 @@ function ProtectedRoute({ children }) {
 
   if (isLoading) {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#141414' }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-page)' }}>
         <div className="spinner" style={{ width: 28, height: 28, borderWidth: 3 }} />
       </div>
     );

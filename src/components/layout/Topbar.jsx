@@ -32,8 +32,19 @@ export default function Topbar({ workspaceName = 'Workspace' }) {
   const [showNotifs, setShowNotifs] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const notifRef = useRef(null);
   const userRef = useRef(null);
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('theme', theme);
+  }, [theme]);
+
+  const toggleTheme = (e) => {
+    e.stopPropagation();
+    setTheme(t => (t === 'dark' ? 'light' : 'dark'));
+  };
 
   const page = getBreadcrumb(location.pathname);
 
@@ -118,25 +129,51 @@ export default function Topbar({ workspaceName = 'Workspace' }) {
 
           {/* User avatar + dropdown */}
           <div ref={userRef} style={{ position: 'relative' }}>
-            <button style={{ background: 'none', border: 'none', cursor: 'pointer' }}
+            <button style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex' }}
               onClick={() => { setShowUserMenu(v => !v); setShowNotifs(false); }}>
               <Avatar user={user} size="md" />
             </button>
             {showUserMenu && (
-              <div className="dropdown" style={{ right: 0, top: 40, width: 180 }}>
-                <div style={{ padding: '8px 10px 6px', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ fontSize: 13, fontWeight: 500, color: 'var(--text)' }}>{user?.name}</div>
-                  <div style={{ fontSize: 11, color: 'var(--text-mute)' }}>{user?.email}</div>
+              <div className="profile-dropdown">
+                {/* Header */}
+                <div className="profile-dropdown-header">
+                  <Avatar user={user} size="lg" />
+                  <div className="profile-dropdown-info">
+                    <div className="profile-dropdown-name">{user?.name}</div>
+                    <div className="profile-dropdown-meta">
+                      {user?.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'Member'} · {workspaceName}
+                    </div>
+                  </div>
                 </div>
-                <div className="dropdown-item" onClick={() => { navigate('/profile'); setShowUserMenu(false); }}>
-                  👤 Profile
-                </div>
-                <div className="dropdown-item" onClick={() => { navigate('/settings'); setShowUserMenu(false); }}>
-                  ⚙ Settings
-                </div>
-                <hr className="divider" style={{ margin: '4px 0' }} />
-                <div className="dropdown-item danger" onClick={() => logout.mutate()}>
-                  ⎋ Sign out
+
+                {/* Menu items */}
+                <div className="profile-dropdown-menu">
+                  <div className="profile-dropdown-item" onClick={() => { navigate('/profile'); setShowUserMenu(false); }}>
+                    <i className="ti ti-user"></i>
+                    <span>My profile</span>
+                  </div>
+                  <div className="profile-dropdown-item" onClick={() => { navigate('/settings'); setShowUserMenu(false); }}>
+                    <i className="ti ti-settings"></i>
+                    <span>Account settings</span>
+                  </div>
+                  <div className="profile-dropdown-item" onClick={() => { navigate('/profile'); setShowUserMenu(false); }}>
+                    <i className="ti ti-lock"></i>
+                    <span>Change password</span>
+                  </div>
+                  <div className="profile-dropdown-item theme-toggle-item" onClick={toggleTheme}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <i className="ti ti-moon"></i>
+                      <span>Dark mode</span>
+                    </div>
+                    <div className={`theme-toggle-pill ${theme === 'dark' ? 'active' : ''}`}>
+                      {theme === 'dark' ? 'ON' : 'OFF'}
+                    </div>
+                  </div>
+                  <div className="profile-dropdown-divider" />
+                  <div className="profile-dropdown-item danger" onClick={() => { logout.mutate(); setShowUserMenu(false); }}>
+                    <i className="ti ti-logout"></i>
+                    <span>Sign out</span>
+                  </div>
                 </div>
               </div>
             )}
