@@ -54,3 +54,40 @@ export function useDeleteProject(projectId) {
     onError: (err) => toast.error(err.response?.data?.message || 'Delete failed'),
   });
 }
+
+export function useAddCustomStatus(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (data) => api.post(`/projects/${projectId}/statuses`, data).then(r => r.data.data.project),
+    onSuccess: () => {
+      qc.invalidateQueries(['project', projectId]);
+      toast.success('Status added!');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to add status'),
+  });
+}
+
+export function useDeleteCustomStatus(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (statusId) => api.delete(`/projects/${projectId}/statuses/${statusId}`).then(r => r.data.data.project),
+    onSuccess: () => {
+      qc.invalidateQueries(['project', projectId]);
+      qc.invalidateQueries(['tasks']);
+      toast.success('Status deleted. Tasks moved to Backlog.');
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to delete status'),
+  });
+}
+
+export function useReorderStatuses(projectId) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (orderedIds) => api.patch(`/projects/${projectId}/statuses/reorder`, { orderedIds }).then(r => r.data.data.project),
+    onSuccess: () => {
+      qc.invalidateQueries(['project', projectId]);
+    },
+    onError: (err) => toast.error(err.response?.data?.message || 'Failed to reorder'),
+  });
+}
+

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { useTask, useUpdateTask, useDeleteTask, useComments, useCreateComment, useDeleteComment } from '../../hooks/useTasks.js';
+import { useTask, useUpdateTask, useDeleteTask, useComments, useCreateComment, useDeleteComment, useCreateTask } from '../../hooks/useTasks.js';
+import { useProject, useAddCustomStatus } from '../../hooks/useProjects.js';
 import { useUsers } from '../../hooks/useNotifications.js';
 import { useAuth } from '../../hooks/useAuth.js';
 import { useUIStore } from '../../stores/uiStore.js';
@@ -11,9 +12,9 @@ import { toast } from 'react-toastify';
 import { format, formatDistanceToNow, isPast } from 'date-fns';
 import api from '../../lib/api.js';
 
-const STATUSES = ['backlog', 'todo', 'in_progress', 'in_review', 'done'];
+const DEFAULT_STATUSES = ['backlog', 'todo', 'in_progress', 'in_review', 'done'];
 const PRIORITIES = ['low', 'medium', 'high', 'urgent'];
-const SUB_STATUS_CHIPS = ['Under Client Review', 'Blocked', 'Internal Review', 'Backlog', '+ Custom'];
+const PRESET_COLORS = ['#6366f1','#f43f5e','#f4c71a','#10b981','#3b82f6','#8b5cf6','#ec4899','#14b8a6','#f97316','#64748b'];
 
 function CustomDatePicker({ value, onChange }) {
   const [isOpen, setIsOpen] = useState(false);
@@ -251,15 +252,33 @@ function CustomDatePicker({ value, onChange }) {
   );
 }
 
-export default function TaskModal({ isOpen, taskId, onClose }) {
+export default function TaskModal({ isOpen, taskId, mode = 'view', context = null, onClose }) {
   const { user } = useAuth();
   const { data: task, isLoading } = useTask(taskId);
   const updateTask = useUpdateTask(taskId);
   const deleteTask = useDeleteTask();
+  const createTask = useCreateTask();
   const { data: comments = [] } = useComments(taskId);
   const createComment = useCreateComment();
   const deleteComment = useDeleteComment();
   const openConfirm = useUIStore(s => s.openConfirmDialog);
+  const openTaskModal = useUIStore(s => s.openTaskModal);
+
+  // Create-mode form state
+  const [createForm, setCreateForm] = useState({
+    title: context?.prefillTitle || '',
+    description: '',
+    status: context?.initialStatus || 'todo',
+    priority: 'medium',
+    assigneeId: '',
+    dueDate: null,
+    startDate: null,
+  });
+
+  // Add-status inline state (for both view & create modes)
+  const [showAddStatusModal, setShowAddStatusModal] = useState(false);
+  const [newStatusLabel, setNewStatusLabel] = useState('');
+  const [newStatusColor, setNewStatusColor] = useState('#6366f1');
 
   const [commentText, setCommentText] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -282,6 +301,31 @@ export default function TaskModal({ isOpen, taskId, onClose }) {
   const workspaceId = user?.workspaceId?._id || user?.workspaceId;
   const { data: members = [] } = useUsers(workspaceId, '');
 
+  // Fetch project for custom statuses (works in both view and create mode)
+  const resolvedProjectId = task?.projectId?._id || task?.projectId || context?.projectId;
+  const { data: projectData } = useProject(resolvedProjectId);
+  const customStatuses = projectData?.project?.customStatuses || [];
+  const addCustomStatus = useAddCustomStatus(resolvedProjectId);
+
+  const ALL_STATUSES = [
+    ...DEFAULT_STATUSES,
+    ...customStatuses.map(cs => cs.id),
+  ];
+  const statusLabel = (s) => {
+    const custom = customStatuses.find(cs => cs.id === s);
+    if (custom) return custom.label;
+    return s.replace('_', ' ');
+  };
+
+  const handleAddStatusSubmit = async (e) => {
+    e.preventDefault();
+    if (!newStatusLabel.trim() || !resolvedProjectId) return;
+    await addCustomStatus.mutateAsync({ label: newStatusLabel.trim(), color: newStatusColor });
+    setNewStatusLabel('');
+    setNewStatusColor('#6366f1');
+    setShowAddStatusModal(false);
+  };
+
   useEffect(() => {
     if (task) {
       setTitleVal(task.title);
@@ -290,6 +334,21 @@ export default function TaskModal({ isOpen, taskId, onClose }) {
       setStartDateVal(task.startDate ? format(new Date(task.startDate), 'yyyy-MM-dd') : '');
     }
   }, [task]);
+
+  // Reset create form when context changes (new column, new project)
+  useEffect(() => {
+    if (mode === 'create') {
+      setCreateForm({
+        title: context?.prefillTitle || '',
+        description: '',
+        status: context?.initialStatus || 'todo',
+        priority: 'medium',
+        assigneeId: '',
+      });
+    }
+  }, [mode, context?.projectId, context?.initialStatus, context?.prefillTitle]);
+
+
 
   // Fetch activity logs
   useEffect(() => {
@@ -333,16 +392,10 @@ export default function TaskModal({ isOpen, taskId, onClose }) {
     await updateTask.mutateAsync({ description: descVal });
   };
 
-  const handleSubStatus = async (chip) => {
-    if (chip === '+ Custom') return;
-    const val = task?.subStatus === chip ? '' : chip;
-    await updateTask.mutateAsync({ subStatus: val });
-  };
-
   const handleStatus = async (status) => {
     await updateTask.mutateAsync({ status });
     setShowStatusDrop(false);
-    toast.success(`Status → ${status.replace('_', ' ')}`);
+    // No toast — only Save Changes fires a toast
   };
 
   const handlePriority = async (priority) => {
@@ -353,7 +406,7 @@ export default function TaskModal({ isOpen, taskId, onClose }) {
   const handleAssign = async (assigneeId) => {
     await updateTask.mutateAsync({ assigneeId });
     setShowAssigneeDrop(false);
-    toast.success('Task reassigned!');
+    // No toast — only Save Changes fires a toast
   };
 
   const handleComment = async (e) => {
@@ -366,13 +419,32 @@ export default function TaskModal({ isOpen, taskId, onClose }) {
   const handleDueDateChange = async (dateVal) => {
     setDueDateVal(dateVal ? format(new Date(dateVal), 'yyyy-MM-dd') : '');
     await updateTask.mutateAsync({ dueDate: dateVal });
-    toast.success('Due date updated');
+    // No toast — only Save Changes fires a toast
   };
 
   const handleStartDateChange = async (dateVal) => {
     setStartDateVal(dateVal ? format(new Date(dateVal), 'yyyy-MM-dd') : '');
     await updateTask.mutateAsync({ startDate: dateVal });
-    toast.success('Start date updated');
+    // No toast — only Save Changes fires a toast
+  };
+
+  // Create-mode: handle form submission
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!createForm.title.trim()) return toast.error('Task title is required');
+    const payload = {
+      title: createForm.title.trim(),
+      description: createForm.description,
+      status: createForm.status,
+      priority: createForm.priority,
+      projectId: context?.projectId,
+      workspaceId: context?.workspaceId || workspaceId,
+    };
+    if (createForm.assigneeId) payload.assigneeId = createForm.assigneeId;
+    if (createForm.dueDate) payload.dueDate = createForm.dueDate;
+    if (createForm.startDate) payload.startDate = createForm.startDate;
+    await createTask.mutateAsync(payload);
+    onClose();
   };
 
   const handleSaveAll = async () => {
@@ -422,6 +494,187 @@ export default function TaskModal({ isOpen, taskId, onClose }) {
   };
 
   if (!isOpen) return null;
+
+  // ─── Create Mode ──────────────────────────────────────────────────
+  if (mode === 'create') {
+    return (
+      <>
+        {/* Add Status inline modal for create mode */}
+        {showAddStatusModal && (
+          <Modal isOpen={true} onClose={() => setShowAddStatusModal(false)}>
+            <form onSubmit={handleAddStatusSubmit} style={{ padding: 24, width: '100%', maxWidth: 340, boxSizing: 'border-box' }}>
+              <h3 style={{ marginBottom: 14, fontSize: 15, fontWeight: 700 }}>✨ Add Project Status</h3>
+              <div style={{ marginBottom: 12 }}>
+                <label className="section-label">Status Name</label>
+                <input className="input" autoFocus value={newStatusLabel} onChange={e => setNewStatusLabel(e.target.value)} placeholder="e.g. QA Testing" />
+              </div>
+              <div style={{ marginBottom: 16 }}>
+                <label className="section-label">Color</label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                  {PRESET_COLORS.map(c => (
+                    <button key={c} type="button" onClick={() => setNewStatusColor(c)}
+                      style={{ width: 22, height: 22, borderRadius: '50%', background: c, border: 'none', cursor: 'pointer', outline: newStatusColor === c ? '2px solid #fff' : 'none', boxShadow: newStatusColor === c ? `0 0 0 1px ${c}` : 'none' }} />
+                  ))}
+                </div>
+              </div>
+              <div className="confirm-actions">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={() => setShowAddStatusModal(false)}>Cancel</button>
+                <button type="submit" className="btn btn-primary btn-sm" disabled={addCustomStatus.isPending || !newStatusLabel.trim()}>
+                  {addCustomStatus.isPending ? <span className="spinner-sm" /> : '+ Add'}
+                </button>
+              </div>
+            </form>
+          </Modal>
+        )}
+
+        <Modal isOpen={isOpen} onClose={onClose} className="task-modal">
+          {/* Header */}
+          <div className="task-modal-header">
+            <StatusBadge status={createForm.status} /
+            >
+            <PriorityBadge priority={createForm.priority} />
+            <span style={{ fontSize: 11, color: 'var(--text-mute)', marginLeft: 4 }}>New Task</span>
+            <button className="btn-icon" onClick={onClose} style={{ marginLeft: 'auto', padding: '4px 8px' }}>✕</button>
+          </div>
+
+          {/* Body */}
+          <div className="task-modal-body">
+            {/* Left column */}
+            <div className="task-modal-left">
+              {/* Title */}
+              <div style={{ marginBottom: 14 }}>
+                <textarea
+                  className="task-modal-title"
+                  value={createForm.title}
+                  onChange={e => setCreateForm(p => ({ ...p, title: e.target.value }))}
+                  placeholder="Task title..."
+                  style={{ background: 'var(--s2)', padding: 6, borderRadius: 6, resize: 'none', width: '100%', border: '1px solid var(--yellow)' }}
+                  rows={2}
+                  autoFocus
+                />
+              </div>
+
+              {/* Description */}
+              <div className="section-label" style={{ marginBottom: 6 }}>Description</div>
+              <textarea
+                className="desc-area"
+                value={createForm.description}
+                onChange={e => setCreateForm(p => ({ ...p, description: e.target.value }))}
+                placeholder="Add a description..."
+                style={{ marginBottom: 16 }}
+              />
+
+              {/* Project Custom Statuses */}
+              <div className="section-label" style={{ marginBottom: 8 }}>Project Statuses</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 16, alignItems: 'center' }}>
+                {customStatuses.map(cs => (
+                  <span key={cs.id} style={{
+                    padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                    background: `${cs.color}22`, color: cs.color, border: `1px solid ${cs.color}44`,
+                  }}>{cs.label}</span>
+                ))}
+                {customStatuses.length === 0 && (
+                  <span style={{ fontSize: 11, color: 'var(--text-mute)' }}>No custom statuses yet</span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setShowAddStatusModal(true)}
+                  style={{
+                    padding: '3px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                    background: 'var(--s2)', color: 'var(--text-mute)', border: '1px dashed var(--border)',
+                    cursor: 'pointer', transition: 'var(--transition)',
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--yellow)'; e.currentTarget.style.color = 'var(--yellow)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-mute)'; }}
+                >+ Add Status</button>
+              </div>
+            </div>
+
+            {/* Right column */}
+            <div className="task-modal-right">
+              {/* Assignee */}
+              <div className="field-row">
+                <div className="section-label">Assignee</div>
+                <select
+                  className="input"
+                  style={{ fontSize: 12 }}
+                  value={createForm.assigneeId}
+                  onChange={e => setCreateForm(p => ({ ...p, assigneeId: e.target.value }))}
+                >
+                  <option value="">Unassigned</option>
+                  {members.map(m => <option key={m._id} value={m._id}>{m.name}</option>)}
+                </select>
+              </div>
+
+              {/* Due Date */}
+              <div className="field-row">
+                <div className="section-label">Due date</div>
+                <CustomDatePicker
+                  value={createForm.dueDate}
+                  onChange={v => setCreateForm(p => ({ ...p, dueDate: v }))}
+                />
+              </div>
+
+              {/* Start Date */}
+              <div className="field-row">
+                <div className="section-label">Start date</div>
+                <CustomDatePicker
+                  value={createForm.startDate}
+                  onChange={v => setCreateForm(p => ({ ...p, startDate: v }))}
+                />
+              </div>
+
+              {/* Priority */}
+              <div className="field-row">
+                <div className="section-label">Priority</div>
+                <select
+                  className="input"
+                  style={{ fontSize: 12 }}
+                  value={createForm.priority}
+                  onChange={e => setCreateForm(p => ({ ...p, priority: e.target.value }))}
+                >
+                  {PRIORITIES.map(p => <option key={p} value={p}>{p.charAt(0).toUpperCase() + p.slice(1)}</option>)}
+                </select>
+              </div>
+
+              {/* Status */}
+              <div className="field-row">
+                <div className="section-label">Status</div>
+                <select
+                  className="input"
+                  style={{ fontSize: 12 }}
+                  value={createForm.status}
+                  onChange={e => setCreateForm(p => ({ ...p, status: e.target.value }))}
+                >
+                  {ALL_STATUSES.map(s => (
+                    <option key={s} value={s}>
+                      {customStatuses.find(cs => cs.id === s)?.label || s.replace('_', ' ')}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <hr className="divider" />
+
+              {/* Actions */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  onClick={handleCreate}
+                  disabled={createTask.isPending || !createForm.title.trim()}
+                  style={{ background: 'var(--yellow)', color: 'var(--dark)', fontWeight: 700 }}
+                >
+                  {createTask.isPending ? <span className="spinner-sm" /> : '✨ Create Task'}
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={onClose}>Cancel</button>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      </>
+    );
+  }
 
   return (
     <>
@@ -485,16 +738,60 @@ export default function TaskModal({ isOpen, taskId, onClose }) {
                   style={{ marginBottom: 16 }}
                 />
 
-                {/* Sub-status */}
-                <div className="section-label" style={{ marginBottom: 8 }}>Sub-status</div>
-                <div className="substatus-chips" style={{ marginBottom: 16 }}>
-                  {SUB_STATUS_CHIPS.map(chip => (
-                    <button key={chip}
-                      className={`substatus-chip ${task.subStatus === chip ? 'active' : ''}`}
-                      onClick={() => handleSubStatus(chip)}>
-                      {chip}
-                    </button>
+                {/* Project Custom Statuses (replaces Sub-status) */}
+                <div className="section-label" style={{ marginBottom: 8 }}>Project Statuses</div>
+
+                {/* Inline Add Status form */}
+                {showAddStatusModal && (
+                  <div style={{ background: 'var(--s2)', border: '1px solid var(--border)', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+                    <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 8, color: 'var(--text-sec)' }}>New Project Status</div>
+                    <input
+                      className="input"
+                      autoFocus
+                      placeholder="Status name..."
+                      value={newStatusLabel}
+                      onChange={e => setNewStatusLabel(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Escape') setShowAddStatusModal(false); }}
+                      style={{ marginBottom: 8, fontSize: 12 }}
+                    />
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 10 }}>
+                      {PRESET_COLORS.map(c => (
+                        <button key={c} type="button" onClick={() => setNewStatusColor(c)}
+                          style={{ width: 20, height: 20, borderRadius: '50%', background: c, border: 'none', cursor: 'pointer', outline: newStatusColor === c ? '2px solid #fff' : 'none', boxShadow: newStatusColor === c ? `0 0 0 1px ${c}` : 'none' }} />
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 6 }}>
+                      <button type="button" className="btn btn-primary btn-sm" style={{ fontSize: 11 }}
+                        disabled={addCustomStatus.isPending || !newStatusLabel.trim()}
+                        onClick={handleAddStatusSubmit}>
+                        {addCustomStatus.isPending ? <span className="spinner-sm" /> : '+ Add'}
+                      </button>
+                      <button type="button" className="btn btn-ghost btn-sm" style={{ fontSize: 11 }} onClick={() => { setShowAddStatusModal(false); setNewStatusLabel(''); }}>Cancel</button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="substatus-chips" style={{ marginBottom: 16, flexWrap: 'wrap' }}>
+                  {customStatuses.map(cs => (
+                    <span key={cs.id} style={{
+                      padding: '4px 10px', borderRadius: 99, fontSize: 11, fontWeight: 600,
+                      background: `${cs.color}22`, color: cs.color, border: `1px solid ${cs.color}44`,
+                      display: 'inline-flex', alignItems: 'center', gap: 4,
+                    }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: cs.color, display: 'inline-block' }} />
+                      {cs.label}
+                    </span>
                   ))}
+                  {customStatuses.length === 0 && (
+                    <span style={{ fontSize: 11, color: 'var(--text-mute)' }}>No custom statuses yet</span>
+                  )}
+                  {!showAddStatusModal && (
+                    <button
+                      className="substatus-chip"
+                      onClick={() => { setShowAddStatusModal(true); setNewStatusLabel(''); setNewStatusColor('#6366f1'); }}
+                      style={{ border: '1px dashed var(--border)' }}
+                    >+ Add Status</button>
+                  )}
                 </div>
 
                 <hr className="divider" />
@@ -651,10 +948,15 @@ export default function TaskModal({ isOpen, taskId, onClose }) {
                     </div>
                     {showStatusDrop && (
                       <div className="dropdown" style={{ left: 0, top: 32, zIndex: 400 }}>
-                        {STATUSES.map(s => (
+                        {ALL_STATUSES.map(s => (
                           <div key={s} className={`dropdown-item ${task.status === s ? 'active' : ''}`}
                             onClick={() => handleStatus(s)}>
-                            <StatusBadge status={s} />
+                            {customStatuses.find(cs => cs.id === s)
+                              ? <span style={{ display:'flex', alignItems:'center', gap: 6 }}>
+                                  <span style={{ width: 8, height: 8, borderRadius:'50%', background: customStatuses.find(cs=>cs.id===s)?.color, display:'inline-block' }} />
+                                  {customStatuses.find(cs => cs.id === s)?.label}
+                                </span>
+                              : <StatusBadge status={s} />}
                           </div>
                         ))}
                       </div>

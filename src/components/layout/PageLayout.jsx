@@ -13,6 +13,8 @@ export default function PageLayout() {
   const taskModalOpen = useUIStore(s => s.taskModalOpen);
   const closeTaskModal = useUIStore(s => s.closeTaskModal);
   const selectedTaskId = useUIStore(s => s.selectedTaskId);
+  const taskModalMode = useUIStore(s => s.taskModalMode);
+  const taskModalContext = useUIStore(s => s.taskModalContext);
   const confirmDialog = useUIStore(s => s.confirmDialog);
   const closeConfirmDialog = useUIStore(s => s.closeConfirmDialog);
 
@@ -34,6 +36,8 @@ export default function PageLayout() {
       <TaskModal
         isOpen={taskModalOpen}
         taskId={selectedTaskId}
+        mode={taskModalMode}
+        context={taskModalContext}
         onClose={closeTaskModal}
       />
 
